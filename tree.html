@@ -60,6 +60,18 @@
             max-width: 100px;
             border-radius: 6px;
         }
+
+        #rebirthButton,
+        #toggleInventoryButton {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: none;
+            background: #00aaff;
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -70,8 +82,9 @@
             <img id="bread" src="bred.jpg" alt="Bread">
             <div id="counter">Money: $0</div>
             <div id="clickCounter">Clicks: 0</div>
-            <div id="clickValueDisplay">Click Value: $1</div>
+            <div id="clickValueDisplay">Click Value: $0.5</div>
             <div id="autoClickerDisplay">Auto-Clickers: 0</div>
+            <div id="rebirthDisplay">Rebirths: 0 (Next cost: $50)</div>
 
             <!-- Shop -->
             <div class="shop">
@@ -90,16 +103,26 @@
                     <button onclick="buyItem('Milk')">Buy</button>
                 </div>
             </div>
+
+            <!-- Buttons -->
+            <button id="rebirthButton" onclick="rebirth()">Rebirth</button>
+            <button id="toggleInventoryButton" onclick="toggleInventory()">Toggle Inventory</button>
         </div>
     </div>
 
     <script>
         let money = 0;
-        let clicks = 0;          // NEW: track clicks separately
+        let clicks = 0;
         let inventory = [];
-        let clickValue = 1;
+        let clickValue = 0.5;
         let autoClickers = 0;
         let autoClickInterval;
+        let canClick = true;
+
+        // Rebirth tracking
+        let rebirths = 0;
+        let rebirthMultiplier = 1;
+        let rebirthCost = 50;
 
         // Prices stored in an object
         let prices = {
@@ -110,9 +133,13 @@
         const breadImg = document.getElementById('bread');
 
         breadImg.addEventListener('click', () => {
-            clicks++;
-            money += clickValue;
-            updateDisplays();
+            if (canClick) {
+                clicks++;
+                money += clickValue;
+                updateDisplays();
+                canClick = false;
+                setTimeout(() => { canClick = true; }, 300);
+            }
         });
 
         function buyItem(name) {
@@ -122,17 +149,15 @@
                 inventory.push(name);
 
                 if (name === "Bread") {
-                    clickValue *= 2; // Bread doubles click value
+                    clickValue += 0.5;
                 }
 
                 if (name === "Milk") {
-                    autoClickers++; // Milk adds auto-clicker
+                    autoClickers++;
                     startAutoClicking();
                 }
 
-                // Increase price after purchase (50% more expensive)
-                prices[name] = Math.floor(prices[name] * 1.5);
-
+                prices[name] = Math.floor(prices[name] * 2);
                 updateDisplays();
             } else {
                 alert("Not enough money!");
@@ -142,23 +167,57 @@
         function startAutoClicking() {
             if (!autoClickInterval) {
                 autoClickInterval = setInterval(() => {
-                    money += autoClickers * clickValue;
+                    money += autoClickers * (clickValue * 0.25);
                     updateDisplays();
-                }, 1000); // every second
+                }, 1000);
             }
         }
 
         function updateDisplays() {
-            document.getElementById('counter').textContent = "Money: $" + money;
+            document.getElementById('counter').textContent = "Money: $" + money.toFixed(2);
             document.getElementById('clickCounter').textContent = "Clicks: " + clicks;
-            document.getElementById('balance').textContent = "Balance: $" + money;
+            document.getElementById('balance').textContent = "Balance: $" + money.toFixed(2);
             document.getElementById('inventory').textContent = "Inventory: " + (inventory.length ? inventory.join(", ") : "none");
-            document.getElementById('clickValueDisplay').textContent = "Click Value: $" + clickValue;
+            document.getElementById('clickValueDisplay').textContent = "Click Value: $" + clickValue.toFixed(2);
             document.getElementById('autoClickerDisplay').textContent = "Auto-Clickers: " + autoClickers;
-
-            // Update shop prices
+            document.getElementById('rebirthDisplay').textContent = "Rebirths: " + rebirths + " (Next cost: $" + rebirthCost + ")";
             document.getElementById('breadPrice').textContent = "Bread - $" + prices.Bread;
             document.getElementById('milkPrice').textContent = "Milk - $" + prices.Milk;
+        }
+
+        function rebirth() {
+            if (money >= rebirthCost) {
+                rebirths++;
+                rebirthMultiplier += 0.5;
+                money = 0;
+                clicks = 0;
+                inventory = [];
+                clickValue = 0.5 * rebirthMultiplier;
+                autoClickers = 0;
+
+                if (autoClickInterval) {
+                    clearInterval(autoClickInterval);
+                    autoClickInterval = null;
+                }
+
+                prices = { Bread: 5, Milk: 3 };
+                rebirthCost = Math.floor(rebirthCost * 2);
+
+                updateDisplays();
+                alert("Rebirth #" + rebirths + "! Clicks are now worth $" + clickValue.toFixed(2));
+            } else {
+                alert("You need at least $" + rebirthCost + " to rebirth!");
+            }
+        }
+
+        // Toggle Inventory visibility
+        function toggleInventory() {
+            const inventoryDiv = document.getElementById('inventory');
+            if (inventoryDiv.style.display === "none") {
+                inventoryDiv.style.display = "block";
+            } else {
+                inventoryDiv.style.display = "none";
+            }
         }
     </script>
 </body>
